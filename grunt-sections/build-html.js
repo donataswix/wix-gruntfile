@@ -1,6 +1,15 @@
 'use strict';
 
 module.exports = function (grunt, options) {
+
+  var cdnData;
+
+  try {
+    cdnData = require('wix-cdn-data')[options.cdnify]();
+  } catch (e) {
+
+  }
+
   function makeScriptTag(defer, async, src) {
     return '<script ' + defer + async + 'src="' + src + '"><\/script>';
   }
@@ -63,6 +72,40 @@ module.exports = function (grunt, options) {
           cwd: 'app',
           src: '{views,modules}/**/*.preload.html',
           dest: '.tmp/templates.app.js'
+        }]
+      },
+      single: {
+        options: {
+          module: options.preloadModule,
+          url: function (url) {
+            return url.replace(/^(app\/|.tmp\/)/, '');
+          },
+          bootstrap: function (module, script) {
+            var str = '';
+            str += '\'use strict\';\n\n';
+            str += 'try {\n';
+            str += '  angular.module(\'' + module + '\');\n';
+            str += '} catch (e) {\n';
+            str += '  angular.module(\'' + module + '\', []);\n';
+            str += '}\n\n';
+            str += 'angular.module(\'' + module + '\').run([\'$templateCache\', function ($templateCache) {\n' + script + '}]);';
+            return str;
+          }
+        },
+        files: [{
+          expand: true,
+          cwd: '.tmp',
+          src: '{views,modules}/**/*.html',
+          dest: '.tmp/',
+          ext: '.html.js',
+          extDot: 'last'
+        }, {
+          expand: true,
+          cwd: 'app',
+          src: '{views,modules}/**/*.html',
+          dest: '.tmp/',
+          ext: '.html.js',
+          extDot: 'last'
         }]
       }
     },
@@ -147,17 +190,23 @@ module.exports = function (grunt, options) {
         files: [{
           expand: true,
           cwd: 'dist',
-          src: '**/*.{html,vm}',
+          src: [
+            '**/*.{html,vm}',
+            '!bower_components/**/*'
+          ],
           dest: 'dist'
         }]
       }
     },
     cdnify: {
       options: {
-        cdn: require('wix-cdn-data')[options.cdnify]()
+        cdn: cdnData
       },
       dist: {
-        html: ['dist/**/*.vm']
+        html: [
+          'dist/**/*.vm',
+          '!dist/bower_components/**/*'
+        ]
       }
     },
     extractStyles: {

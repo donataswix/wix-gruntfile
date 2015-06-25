@@ -1,17 +1,34 @@
 'use strict';
 
+var shell = require('shelljs');
 var featureDetector = require('../feature-detector');
 
 module.exports = function (grunt, options) {
   grunt.registerTask('typescriptIfEnabled', function () {
-    if (featureDetector.isTypescriptEnabled()) {
-      grunt.task.run('ts');
+    if (grunt.task.exists('ts') && featureDetector.isTypescriptEnabled()) {
+      grunt.file.write('app/scripts/reference.ts', '/// <reference path="../../reference.ts" />');
+      grunt.file.write('test/reference.ts', '/// <reference path="../reference.ts" />');
+      grunt.task.run('tsWithHack:copy');
     }
   });
 
+  grunt.registerTask('tsWithHack', function (param) {
+    grunt.task.run('ts');
+    grunt.task.run('theTsHack:' + param);
+  });
+
+  grunt.registerTask('theTsHack', function (param) {
+    if (param === 'rename') {
+      shell.mv('.tmp/app/*', '.tmp/');
+    } else {
+      shell.cp('-Rf', '.tmp/app/*', '.tmp/');
+    }
+    grunt.file.delete('.tmp/app');
+  });
+
   grunt.registerTask('traceurIfEnabled', function () {
-    if (featureDetector.isTraceurEnabled()) {
-      grunt.task.run('traceur');
+    if (grunt.task.exists('traceur') && featureDetector.isTraceurEnabled()) {
+      grunt.task.run('newer:traceur');
     }
   });
 
@@ -43,21 +60,9 @@ module.exports = function (grunt, options) {
     },
     typescript: {
       build: {
-        src: ['app/' + (options.useModulesStructure ? 'modules' : 'scripts') + '/**/*.ts', '!app/modules/**/*.test.ts'],
-        outDir: '.tmp/' + (options.useModulesStructure ? 'modules' : 'scripts'),
-        reference: 'app/scripts/reference.ts',
-        options: {
-          target: 'es5',
-          sourceMap: false,
-          declaration: false,
-          removeComments: false,
-          module: 'commonjs'
-        }
-      },
-      test: {
-        src: [options.useModulesStructure ? 'app/modules/**/*.test.ts' : 'test/**/*.ts'],
-        outDir: '.tmp/test/',
-        reference: 'test/reference.ts',
+        src: ['app/' + (options.useModulesStructure ? 'modules' : 'scripts') + '/**/*.ts', 'test/**/*.ts'],
+        outDir: '.tmp/',
+        reference: 'reference.ts',
         options: {
           target: 'es5',
           sourceMap: false,

@@ -3,9 +3,13 @@
 module.exports = function (grunt, options) {
 
   grunt.registerTask('autoprefixerIfEnabled', function () {
-    if(options.autoprefixer) {
-      grunt.task.run(['autoprefixer']);
+    if (options.autoprefixer) {
+      grunt.task.run(['newer:autoprefixer']);
     }
+  });
+
+  grunt.registerTask('mkdirTmpStyles', function () {
+    grunt.file.mkdir('.tmp/styles');
   });
 
   return {
@@ -31,7 +35,7 @@ module.exports = function (grunt, options) {
         imagesDir: 'app/images',
         javascriptsDir: 'app/scripts',
         fontsDir: 'app/fonts',
-        importPath: 'app/bower_components',
+        importPath: ['app/bower_components', '.tmp/styles/'],
         httpImagesPath: '../images',
         httpGeneratedImagesPath: '../images/generated',
         httpFontsPath: 'fonts',

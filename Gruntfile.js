@@ -4,6 +4,7 @@ module.exports = function (grunt, options) {
 
   var extend = require('util')._extend;
   var shell = require('shelljs');
+  var featureDetector = require('./feature-detector');
 
   Array.prototype.replace = function (j, k) {
     this.splice(Math.min(j, k), 0, this.splice(Math.max(j, k), 1)[0]);
@@ -49,8 +50,39 @@ module.exports = function (grunt, options) {
     }});
   }
 
-  require('load-grunt-tasks')(grunt, {config: require('./package.json')});
-  require('time-grunt')(grunt);
+  var lintPlugins = ['grunt-contrib-jshint', 'grunt-jscs', 'grunt-tslint', 'grunt-scss-lint', 'grunt-newer'];
+  if (process.argv[2] === 'lint') {
+    lintPlugins.forEach(function (name) {
+      grunt.loadNpmTasks('wix-gruntfile/node_modules/' + name);
+    });
+  } else if (process.argv[2] === 'serve' || process.argv[2] === 'serve:clean') {
+    var plugins = lintPlugins.concat([
+                   'grunt-text-replace', 'grunt-contrib-copy', 'grunt-karma', 'grunt-contrib-watch',
+                   'grunt-contrib-connect', 'grunt-contrib-compass', 'grunt-angular-templates',
+                   'grunt-json-angular-translate',  'grunt-petri-experiments', 'grunt-contrib-clean'
+                  ]);
+    plugins = plugins.concat(options.inline ? ['grunt-extract-styles', 'grunt-wix-inline'] : []);
+    plugins = plugins.concat(options.svgFontName ? ['grunt-webfont'] : []);
+    plugins = plugins.concat(options.autoprefixer ? ['grunt-autoprefixer'] : []);
+    plugins = plugins.concat(featureDetector.isTraceurEnabled() ? ['grunt-traceur-latest'] : []);
+    plugins = plugins.concat(featureDetector.isTypescriptEnabled() ? ['grunt-ts'] : []);
+    plugins = plugins.concat(featureDetector.isHamlEnabled() ? ['grunt-haml2html-shahata'] : []);
+    plugins.forEach(function (name) {
+      grunt.loadNpmTasks('wix-gruntfile/node_modules/' + name);
+    });
+  } else {
+    require('load-grunt-tasks')({loadNpmTasks: function (name) {
+      grunt.loadNpmTasks('wix-gruntfile/node_modules/' + name);
+    }}, {config: require('./package.json')});
+    require('time-grunt')(grunt);
+  }
+
+  var optionalTasks = ['petriExperiments'];
+  optionalTasks.forEach(function (task) {
+    if (!grunt.task.exists(task)) {
+      grunt.registerTask(task, function () {});
+    }
+  });
 
   grunt.initConfig({
     yeoman:                 require('./grunt-sections/flow')(grunt, options).yeoman,
@@ -70,6 +102,7 @@ module.exports = function (grunt, options) {
 
     petriExperiments:       require('./grunt-sections/generators')(grunt, options).petriExperiments,
     jsonAngularTranslate:   require('./grunt-sections/generators')(grunt, options).translations,
+    webfontIfEnabled:       require('./grunt-sections/generators')(grunt, options).webfontIfEnabled,
     webfont:                require('./grunt-sections/generators')(grunt, options).webfont,
 
     watch:                  require('./grunt-sections/watch')(grunt, options),
@@ -94,7 +127,7 @@ module.exports = function (grunt, options) {
     copy:                   require('./grunt-sections/flow')(grunt, options).copy,
 
     karma:                  require('./grunt-sections/test-runners')(grunt, options).karma,
-    protractor:             require('./grunt-sections/test-runners')(grunt, options).protractor,
+    protractor:             require('./grunt-sections/test-runners')(grunt, options).protractor
   });
 
   grunt.registerTask('wix-install', function () {
@@ -106,16 +139,24 @@ module.exports = function (grunt, options) {
     'typescriptIfEnabled',
     'traceurIfEnabled',
     'scssstyleIfEnabled',
-    'webfontIfEnabled',
+    'mkdirTmpStyles',
+    'newer:webfontIfEnabled',
     'hamlIfEnabled',
     'compass:dist',
     'replace:dist',
-    'copy:styles',
-    'jsonAngularTranslate',
-    'petriExperiments',
+    'newer:copy:styles',
+    'newer:jsonAngularTranslate',
+    'newer:ngtemplates:single',
+    'newer:petriExperiments',
     'autoprefixerIfEnabled',
     'styleInlineServeIfEnabled',
-    'copy:vm'
+    'newer:copy:vm'
+  ]);
+
+  grunt.registerTask('pre-build:clean', [
+    'clean:dist',
+    'newer-clean',
+    'pre-build'
   ]);
 
   grunt.registerTask('package', function () {
@@ -137,13 +178,13 @@ module.exports = function (grunt, options) {
   });
 
   grunt.registerTask('serve', [
-    'wix-install',
     'ignore-code-style-checks',
     'karma:unit',
-    'clean:server',
+    'clean:ts',
     'pre-build',
-    'karma:unit:run',
+    'livereloadServer',
     'connect:livereload',
+    'karma:unit:run',
     'watch'
   ]);
 
@@ -152,14 +193,19 @@ module.exports = function (grunt, options) {
     'connect:dist:keepalive'
   ]);
 
+  grunt.registerTask('serve:clean', [
+    'clean:server',
+    'newer-clean',
+    'serve'
+  ]);
+
   grunt.registerTask('serve:coverage', [
     'enableCoverage',
     'serve'
   ]);
 
   grunt.registerTask('test', [
-    'clean:server',
-    'pre-build',
+    'pre-build:clean',
     'karma:single'
   ]);
 
@@ -174,15 +220,14 @@ module.exports = function (grunt, options) {
   ]);
 
   grunt.registerTask('build', [
-    'clean:dist',
-    'test',
+    'pre-build:clean',
+    'karma:single',
     'package',
     'e2eIfEnabled:normal'
   ]);
 
   grunt.registerTask('build:ci', [
-    'clean:dist',
-    'pre-build',
+    'pre-build:clean',
     'karma:teamcity',
     'package'
   ]);
@@ -219,7 +264,7 @@ module.exports = function (grunt, options) {
   grunt.modifyTask = function (what, how) {
     var conf = grunt.config(what);
     if (typeof how === 'function') {
-      how.call(conf);
+      conf = how.call(conf, conf) || conf;
     } else {
       applyModifications(conf, how);
     }

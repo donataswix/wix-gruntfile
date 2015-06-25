@@ -15,24 +15,26 @@ module.exports = function (grunt) {
     });
   });
 
+  grunt.registerTask('lint', ['jsstyleIfEnabled', 'scssstyleIfEnabled']);
+
   grunt.registerTask('jsstyleIfEnabled', function () {
     if (featureDetector.isJshintEnabled()) {
-      grunt.task.run('jshint');
+      grunt.task.run('newer:jshint');
     }
     if (featureDetector.isJscsEnabled()) {
-      grunt.task.run('jscs');
+      grunt.task.run('newer:jscs');
     }
     if (featureDetector.isTslintEnabled()) {
       var config = grunt.config('tslint');
       config.options.configuration = grunt.file.readJSON('tslint.json');
       grunt.config('tslint', config);
-      grunt.task.run('tslint');
+      grunt.task.run('newer:tslint');
     }
   });
 
   grunt.registerTask('scssstyleIfEnabled', function () {
     if (featureDetector.isScssStyleEnabled()) {
-      grunt.task.run('scsslint');
+      grunt.task.run('newer:scsslint');
     }
   });
 
@@ -40,13 +42,15 @@ module.exports = function (grunt) {
     tslint: {
       options: {
       },
-      files: {
-        src: [
-          'app/{scripts,modules}/**/*.ts',
-          'test/{spec,mock,e2e}/**/*.ts',
-          '!app/scripts/typings/**/*.ts',
-          '!app/scripts/reference.ts'
-        ]
+      all: {
+        files: [{
+          src: [
+            'app/{scripts,modules}/**/*.ts',
+            'test/{spec,mock,e2e}/**/*.ts',
+            '!app/scripts/typings/**/*.ts',
+            '!app/scripts/reference.ts'
+          ]
+        }]
       }
     },
     jshint: {
@@ -58,41 +62,45 @@ module.exports = function (grunt) {
         options: {
           jshintrc: '.jshintrc'
         },
-        files: {
+        files: [{
           src: [
             'Gruntfile.js',
             'app/{scripts,modules}/**/*.js',
             '!app/modules/**/*.test.js',
             '!app/scripts/lib/**/*.js'
           ]
-        }
+        }]
       },
       test: {
         options: {
           jshintrc: 'test/.jshintrc'
         },
-        files: {
+        files: [{
           src: ['test/{spec,mock,e2e}/**/*.js', 'app/modules/**/*.test.js']
-        }
+        }]
       }
     },
     jscs: {
       options: {
         config: '.jscsrc'
       },
-      files: {
-        src: [
-          'Gruntfile.js',
-          'app/{scripts,modules}/**/*.js',
-          '!app/scripts/lib/**/*.js',
-          'test/{spec,mock,e2e}/**/*.js'
-        ]
+      all: {
+        files: [{
+          src: [
+            'Gruntfile.js',
+            'app/{scripts,modules}/**/*.js',
+            '!app/scripts/lib/**/*.js',
+            'test/{spec,mock,e2e}/**/*.js'
+          ]
+        }]
       }
     },
     scsslint: {
-      styles: [
-        'app/{styles,modules}/**/*.scss'
-      ],
+      styles: {
+        files: [{
+          src: 'app/{styles,modules}/**/*.scss'
+        }]
+      },
       options: {
         bundleExec: true,
         config: '.scss-lint.yml',

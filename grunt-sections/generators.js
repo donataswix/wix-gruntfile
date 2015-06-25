@@ -3,9 +3,11 @@
 var path = require('path');
 
 module.exports = function (grunt, options) {
-  grunt.registerTask('webfontIfEnabled', function () {
-    if (options.svgFontName) {
+  grunt.registerMultiTask('webfontIfEnabled', function () {
+    if (options.svgFontName && this.files.length) {
       grunt.task.run('webfont');
+    } else {
+      console.log('Task disabled');
     }
   });
 
@@ -48,6 +50,13 @@ module.exports = function (grunt, options) {
         }]
       }
     },
+    webfontIfEnabled: {
+      all: {
+        files: [{
+          src: 'app/images/svg-font-icons/*.svg'
+        }]
+      }
+    },
     webfont: {
       icons: {
         src: 'app/images/svg-font-icons/*.svg',
@@ -62,7 +71,9 @@ module.exports = function (grunt, options) {
           template: path.join(__dirname, '../webfont-css-generator-template.css'), /* Custom template is a copy-paste of 'bootstrap' template + including 'bem' general class so it will be easily used with @mixins */
           templateOptions: {
             baseClass: options.svgFontName + '-svg-font-icons',
-            classPrefix: options.svgFontName + '-svg-font-icons-'
+            classPrefix: options.svgFontName + '-svg-font-icons-',
+            codePrefix: '',
+            codeSuffix: ''
           }
         }
       }
