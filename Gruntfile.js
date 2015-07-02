@@ -50,7 +50,8 @@ module.exports = function (grunt, options) {
     }});
   }
 
-  var lintPlugins = ['grunt-contrib-jshint', 'grunt-jscs', 'grunt-tslint', 'grunt-scss-lint', 'grunt-newer'];
+  var lintPlugins = ['grunt-contrib-jshint', 'grunt-jscs', 'grunt-tslint', 'grunt-scss-lint',
+                     'grunt-newer', 'grunt-force-task'];
   if (process.argv[2] === 'lint') {
     lintPlugins.forEach(function (name) {
       grunt.loadNpmTasks('wix-gruntfile/node_modules/' + name);
@@ -101,6 +102,7 @@ module.exports = function (grunt, options) {
     haml:                   require('./grunt-sections/transform-html')(grunt, options).haml,
 
     petriExperiments:       require('./grunt-sections/generators')(grunt, options).petriExperiments,
+    manifestPackager:       require('./grunt-sections/generators')(grunt, options).manifestPackager,
     jsonAngularTranslate:   require('./grunt-sections/generators')(grunt, options).translations,
     webfontIfEnabled:       require('./grunt-sections/generators')(grunt, options).webfontIfEnabled,
     webfont:                require('./grunt-sections/generators')(grunt, options).webfont,
@@ -163,6 +165,7 @@ module.exports = function (grunt, options) {
     grunt.task.run([
       'imagemin',
       'copy:dist',
+      'manifestPackager',
       'useminPrepare',
       'styleInlineDistIfEnabled',
       'ngtemplates',

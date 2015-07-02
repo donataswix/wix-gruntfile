@@ -1,7 +1,7 @@
 {
   "name": "wix-gruntfile",
   "description": "Wix Gruntfile.",
-  "version": "0.1.228",
+  "version": "0.1.236",
   "author": {
     "name": "Shahar Talmi"
   },
@@ -34,6 +34,7 @@
     "grunt-contrib-jshint": "^0.11.0",
     "grunt-contrib-uglify": "^0.7.0",
     "grunt-contrib-watch": "^0.6.1",
+    "grunt-force-task": "^1.0.0",
     "grunt-google-cdn-shahata": "^0.2.0",
     "grunt-haml2html-shahata": "^0.3.0",
     "grunt-jscs": "^1.5.0",
@@ -74,6 +75,7 @@
     "typescript": "^1.5.0-beta"
   },
   "optionalDependencies": {
+    "grunt-manifest-packager": "^1.0.0",
     "wix-cdn-data": "^0.1.0",
     "grunt-petri-experiments": "^1.0.0",
     "grunt-extract-styles": "^0.2.0",
